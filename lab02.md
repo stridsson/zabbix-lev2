@@ -1,0 +1,253 @@
+## Модуль 2: Настройка и управление хостами
+
+**Задание: Создание и настройка хоста в Zabbix.**
+
+---
+
+**План:** 
+-	Создайте новый хост.
+-	Настройте параметры хоста.
+-	Добавьте пользовательские макросы.
+-	Добавьте теги.
+-	Настройте сбор данных с использованием простых проверок.
+-	Настройте сбор данных с использованием SSH проверок.
+-	Установите и настройте агент Zabbix.
+-	Проверьте работу агента.
+-	Настройте плагины Zabbix agent2.
+-	Подготовьте отчет о проделанной работе.
+
+---
+
+### Практическая работа
+---
+
+### 1. **Добавьте новый хост**
+1. Перейдите в **Мониторинг → Узлы сети**.  
+2. Нажмите кнопку **Создать узел сети**.  
+3. Укажите **Имя хоста** `zabbix-db`.  
+4. В поле **Группы** выберите или создайте группу (`Linux Servers`,`Databases`,`Familiya`).  
+5. В разделе **Интерфейсы** добавьте интерфейс:  
+   - Для мониторинга через агент укажите **IP-адрес** 10.0.20.3 и порт **10050**.  
+  
+6. Нажмите **Добавить**.  
+
+### 2. **Настройте параметры хоста**  
+1. Откройте созданный узел `zabbix-db` (Перейдите в **Мониторинг → Узлы сети**).  
+2. Перейдите во вкладку **Настройки**.  
+3. Проверьте правильность настроек группы, интерфейсов и имени хоста.  
+4. В поле **Шаблоны** добавьте нужные шаблоны:  
+   - начните писать `Linux` (для мониторинга Linux). 
+   - начните писать `Postgresql` (для мониторинга Postgresql). 
+   !!!!!!!!!!!!!картинка
+5. Сохраните изменения.  
+
+### 3. **Добавьте пользовательские макросы**  
+1. Откройте узел сети и перейдите во вкладку **Макросы**.  
+2. Нажмите **Добавить**.  
+3. Введите макрос, например:  
+   - `{$SSH_USER} = devops`  
+4. Сохраните настройки.  
+
+### 4. **Добавьте теги**  
+1. В настройках узла откройте вкладку **Теги**.  
+2. Нажмите **Добавить**.  
+3. Введите **Тег**  `Loacation`, введите **Значение** `Datacenter20`.
+4. Введите **Тег**  `Student`, введите **Значение** `Vasha_familiya`.
+5. Сохраните изменения.  
+
+
+### 5. **Настройте сбор данных с использованием простых проверок**  
+1. Перейдите в **Сбор данных → Узлы сети** 
+2. Откройте узел `zabbix-db` и перейдите во вкладку **Элементы данных**.  
+3. Нажмите **Создать элемент данных**.  
+4. Укажите:  
+   - **Имя**: `Ping check`.  
+   - **Тип**: Простая проверка.  
+   - **Ключ**: Например, `icmpping`.  
+   - **Интервал обновления**: Например, `60s`.  
+   - **Тип информации**: Лог.  
+   - Во владке **Теги**: Введите **Тег**  `Student`, введите **Значение** `Vasha_familiya`.
+5. Сохраните настройки.  
+
+
+### 6. **Настройте сбор данных с использованием SSH проверок**  
+1. Перейдите во вкладку **Элементы данных** в настройках узла.  
+2. Нажмите **Создать элемент данных**.  
+3. Укажите:  
+   - **Имя**: Например, `Check uptime via SSH`.  
+   - **Тип**: `SSH-агент`. 
+   - **Ключ**: Например, `ssh.run`.
+   - **Тип информации**: Лог  
+   - **Тип аутентификации**: `Ключ`.  
+   - **Имя пользователя**: Например, `{$SSH_USER}`.
+   - **Файл публичного ключа**: id_ed25519.pub
+   - **Файл приватного ключа**: id_ed25519
+   - **Команда**: `uptime`.  
+   - **Интервал обновления**: `10s`. 
+   - Добавьте тег `Student=Vasha_Familiya` 
+4. Сохраните настройки.  
+5. Перейдите в **Мониторинг → Последние данные**, в поле **Узлы сети** укажите `zabbix-db-familiya`. В поле **Теги** `Student` и `Vasha_Familiya`
+6. Появится строка с вашим сервером и ошибкой в столбце **Инфо** это связано с отсутствием ключа и политиками selinux
+7. Создайте каталог **`/var/lib/zabbix/.ssh`**
+8. Скопируйте в каталог **`/var/lib/zabbix/.ssh/`** ключи `id_ed25519.pub` и `id_ed25519` пользователя **devops**.
+
+9. Установите рекурсивно права на каталог **`/var/lib/zabbix/.ssh/`** и файлы в нем для пользователя и группы **zabbix**.
+
+10. Включите политику SELinux, позволяющую Zabbix работать с SSH
+```bash
+sudo setsebool -P zabbix_can_network on
+sudo setsebool -P zabbix_run_sudo on
+```
+11. Перезапустите Zabbix
+```bash
+sudo systemctl restart zabbix-server
+```
+
+### 7. **Установите и настройте агент Zabbix на Linux**  
+1. Установите агент на server-db:
+
+```bash
+dnf install zabbix-selinux-policy zabbix-agent -y
+```  
+
+2. Отредактируйте конфигурацию:  
+
+```bash
+sudo vim /etc/zabbix/zabbix_agentd.conf
+```  
+   - Укажите сервер:  
+     ```
+     Server=ZABBIX_SERVER_IP
+     ServerActive=ZABBIX_SERVER_IP
+     ```  
+   - Укажите имя хоста (должно совпадать с именем в Zabbix):  
+     ```
+     Hostname=zabbix-db
+     ```  
+3. Перезапустите агент:  
+```bash
+sudo systemctl restart zabbix-agent
+sudo systemctl enable zabbix-agent
+```
+
+
+### 8. **Установите и настройте агент Zabbix на Windows server**  
+1. Скачайте агент с [официального сайта](https://www.zabbix.com/download_agents).  
+2. Установите и настройте `zabbix agent`, указав **Server** и **Hostname**.  
+3. Проверьте службу агента - убедитесь что она стартовала.  
+4. Проверьте журнал и убедитесь, что нет ошибок. Откройте файл C:\Program Files\Zabbix Agent\zabbix_agentd.log и проверьте ошибки.
+5. Откройте файл конфигурации находится в C:\Program Files\Zabbix Agent\zabbix_agentd.conf.  Убедитесь, что сервер указан правильно
+   ```ini
+   Server=10.0.20.10
+   ServerActive=10.0.20.10
+   ```
+6. Перезапустите агент.
+---
+
+### 9. **Проверьте работу агента**  
+1. Установите пакет `zabbix-get`
+   ```bash
+   sudo dnf install zabbix-get
+   ```
+2. Выполните команду на сервере Zabbix (AGENT_IP - укажите адрес zabbix-db):  
+   ```bash
+   zabbix_get -s AGENT_IP -k system.uptime
+   ```  
+3. Если агент работает, должно появиться время работы системы в секундах.
+4. Если вы получили ошибку:
+   ```bash
+   [student@zabbix-server ~]$ zabbix_get -s 10.0.20.3 -k system.uptime
+   zabbix_get [819791]: Get value error: cannot connect to [[10.0.20.3]:10050]: connection error (POLLERR,POLLHUP)
+   ```
+   Подключитесь по ssh к серверу **zabbix-db** и откройте порты на фаерволе
+   ```bash
+   sudo firewall-cmd --add-port=10050/tcp
+   sudo firewall-cmd --add-port=10050/tcp --permanent
+   ```
+5. Выполните команду на сервере Zabbix (AGENT_IP - укажите адрес WINSERVER):  
+   ```bash
+   zabbix_get -s AGENT_IP -k system.hostname
+   ```  
+---
+
+### 9. **Настройте плагины Zabbix agent2**  
+1. Подключитесь к серверу zabbix-db
+2. Остановите сервис zabbix-agent.service
+```bash
+sudo systemctl stop zabbix-agent.service
+```
+3. Удалите пакет zabbix-agent
+```bash
+sudo dnf remove zabbix-agent
+```
+4. Установите Zabbix agent2:  
+   ```bash
+   sudo dnf install zabbix-agent2 -y
+   ```  
+5. Отредактируйте конфигурацию `/etc/zabbix/zabbix_agent2.conf`:  
+   ```
+   Server=10.0.20.10
+   ServerActive=10.0.20.10
+   Hostname=zabbix-db
+   ```  
+6. Включите нужные плагины, для мониторинга Postgresql, для этого установите пакет `zabbix-agent2-plugin-postgresql.x86_64` и отредактируйте файл `/etc/zabbix/zabbix_agent2.d/plugins.d/postgresql.conf`:  
+   ```
+   Plugins.PostgreSQL.Default.Databases=zabbix
+   Plugins.PostgreSQL.Default.User=zbx_monitor
+   Plugins.PostgreSQL.Default.Password=zabbix
+   ```  
+> Обязательно ознакомьтесь с инструкцией для плагина для добавленияпользователя и макросов в узел хоста **zabbix-db**
+   Setup:
+>
+> 1. Deploy Zabbix agent 2 with the PostgreSQL plugin. Starting with Zabbix versions 6.0.10 / 6.2.4 / 6.4 PostgreSQL metrics are moved to a loadable plugin and require installation of a separate package or compilation of the plugin from sources (https://www.zabbix.com/documentation/7.0/manual/extensions/plugins/build).
+>
+> 2. Create the PostgreSQL user for monitoring (`<password>` at your discretion) and inherit permissions from the default role `pg_monitor`:
+CREATE USER zbx_monitor WITH PASSWORD '<PASSWORD>' INHERIT;
+GRANT pg_monitor TO zbx_monitor;
+>```bash
+>#на серевере zabbix_db
+>sudo -u postgres psql
+>CREATE USER zbx_monitor WITH PASSWORD 'zabbix' INHERIT;
+>GRANT pg_monitor TO zbx_monitor;
+>exit
+>```
+> 3. Edit the `pg_hba.conf` configuration file to allow connections for the user `zbx_monitor`. You can check the PostgreSQL documentation for examples (https://www.postgresql.org/docs/current/auth-pg-hba-conf.html).
+>```ini
+># TYPE  DATABASE        USER            ADDRESS                 METHOD
+>host    all             all             10.0.20.0/24            md5
+>```
+>Для проверки подключитесь с **zabbix-server**
+>```bash
+>student@zabbix-server ~ [1]> psql -h 10.0.20.3 -U zbx_monitor -d postgres
+>Пароль пользователя zbx_monitor:
+>psql (17.2)
+>Введите "help", чтобы получить справку.
+>
+>postgres=> exit
+>```
+> 4. Set the connection string for the PostgreSQL instance in the `{$PG.CONNSTRING.AGENT2}` macro as URI, such as `<protocol(host:port)>`, or specify the named session - `<sessionname>`.
+
+
+7. Перезапустите агент:  
+   ```bash
+   sudo systemctl restart zabbix-agent2
+   sudo systemctl enable zabbix-agent2
+   ```  
+
+---
+### Лабораторная работа
+
+### 10. **Установите и настройте агент Zabbix на Linux** 
+1. Самостоятельно добавьте Zabbix agent на рабочую станцию **ws**
+2. Самостоятельно добавьте Zabbix agent2 на сервер **gw**
+3. Проверьте доступность агентов с **zabbix-server** с помощью
+   ```bash
+   zabbix_get -s AGENT_IP -k system.hostname
+   ```
+   
+### 11. **Установите и настройте агент Zabbix на Windows** 
+1. Самостоятельно добавьте Zabbix agent на рабочую станцию **win10**
+2. Проверьте доступность агентов с **zabbix-server** с помощью
+   ```bash
+   zabbix_get -s AGENT_IP -k system.hostname
+   ```
