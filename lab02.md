@@ -38,7 +38,6 @@
 4. В поле **Шаблоны** добавьте нужные шаблоны:  
    - начните писать `Linux` (для мониторинга Linux). 
    - начните писать `Postgresql` (для мониторинга Postgresql). 
-   !!!!!!!!!!!!!картинка
 5. Сохраните изменения.  
 
 ### 3. **Добавьте пользовательские макросы**  
@@ -51,7 +50,7 @@
 ### 4. **Добавьте теги**  
 1. В настройках узла откройте вкладку **Теги**.  
 2. Нажмите **Добавить**.  
-3. Введите **Тег**  `Loacation`, введите **Значение** `Datacenter20`.
+3. Введите **Тег**  `Location`, введите **Значение** `Datacenter20`.
 4. Введите **Тег**  `Student`, введите **Значение** `Vasha_familiya`.
 5. Сохраните изменения.  
 
@@ -190,43 +189,7 @@ sudo dnf remove zabbix-agent
    ServerActive=10.0.20.10
    Hostname=zabbix-db
    ```  
-6. Включите нужные плагины, для мониторинга Postgresql, для этого установите пакет `zabbix-agent2-plugin-postgresql.x86_64` и отредактируйте файл `/etc/zabbix/zabbix_agent2.d/plugins.d/postgresql.conf`:  
-   ```
-   Plugins.PostgreSQL.Default.Databases=zabbix
-   Plugins.PostgreSQL.Default.User=zbx_monitor
-   Plugins.PostgreSQL.Default.Password=zabbix
-   ```  
-> Обязательно ознакомьтесь с инструкцией для плагина для добавленияпользователя и макросов в узел хоста **zabbix-db**
-   Setup:
->
-> 1. Deploy Zabbix agent 2 with the PostgreSQL plugin. Starting with Zabbix versions 6.0.10 / 6.2.4 / 6.4 PostgreSQL metrics are moved to a loadable plugin and require installation of a separate package or compilation of the plugin from sources (https://www.zabbix.com/documentation/7.0/manual/extensions/plugins/build).
->
-> 2. Create the PostgreSQL user for monitoring (`<password>` at your discretion) and inherit permissions from the default role `pg_monitor`:
-CREATE USER zbx_monitor WITH PASSWORD '<PASSWORD>' INHERIT;
-GRANT pg_monitor TO zbx_monitor;
->```bash
->#на серевере zabbix_db
->sudo -u postgres psql
->CREATE USER zbx_monitor WITH PASSWORD 'zabbix' INHERIT;
->GRANT pg_monitor TO zbx_monitor;
->exit
->```
-> 3. Edit the `pg_hba.conf` configuration file to allow connections for the user `zbx_monitor`. You can check the PostgreSQL documentation for examples (https://www.postgresql.org/docs/current/auth-pg-hba-conf.html).
->```ini
-># TYPE  DATABASE        USER            ADDRESS                 METHOD
->host    all             all             10.0.20.0/24            md5
->```
->Для проверки подключитесь с **zabbix-server**
->```bash
->student@zabbix-server ~ [1]> psql -h 10.0.20.3 -U zbx_monitor -d postgres
->Пароль пользователя zbx_monitor:
->psql (17.2)
->Введите "help", чтобы получить справку.
->
->postgres=> exit
->```
-> 4. Set the connection string for the PostgreSQL instance in the `{$PG.CONNSTRING.AGENT2}` macro as URI, such as `<protocol(host:port)>`, or specify the named session - `<sessionname>`.
-
+6. Включите нужные плагины, для мониторинга Postgresql, для этого установите пакет `zabbix-agent2-plugin-postgresql.x86_64`
 
 7. Перезапустите агент:  
    ```bash
