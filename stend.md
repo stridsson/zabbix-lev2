@@ -9,7 +9,7 @@
 |zabbix-server  | 10.0.20.10 | student    | zabbix     |
 |zabbix-db      | 10.0.20.3 | student    | zabbix    |
 |zabbix-proxy   | 10.0.10.50 | student   | zabbix    |
-|infra   | 10.0.10.100 | student   | P@ssw0rd    |
+|infra   | 10.0.10.100 | student   | zabbix   |
 |win-server19   | 10.0.10.201 | Administrator | P@ssw0rd |
 |win-10         | 10.0.20.221 | Administrator | P@ssw0rd |
 
