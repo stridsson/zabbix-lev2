@@ -10,8 +10,8 @@
 |zabbix-db      | 10.0.20.3 | student    | zabbix    |
 |zabbix-proxy   | 10.0.10.50 | student   | zabbix    |
 |infra   | 10.0.10.100 | student   | zabbix   |
-|winserver19   | 10.0.10.201 | Administrator | P@ssw0rd |
-|winclient         | 10.0.20.221 | Administrator | P@ssw0rd |
+|winserver19   | 10.0.20.201 | Administrator | P@ssw0rd |
+|winclient         | 10.0.10.211 | Administrator | P@ssw0rd |
 |mikrotik         | 10.0.20.99 | admin | zabbix |
 |        | 10.0.10.99 |  |  |
 
