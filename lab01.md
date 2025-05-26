@@ -17,13 +17,18 @@
 
 1. Подготовьте сервер zabbix. Подключитесь к ВМ **02-zabbix_server**.
 
-Отключите пакеты Zabbix, предоставляемые EPEL, если они у вас установлены. Отредактируйте файл /etc/yum.repos.d/epel.repo и добавьте следующее утверждение.
+> **Рекомендация:** Для работы по ssh с виртуальными машинами стенда, используйте подключение по ssh к ВМ 01-gw (уточните адрес в веб-интерфейсе вашей системы виртуализации) и затем с нее подключитесь по ssh к  ВМ 02,03,04... используя адреса из сети 10.0.0.0/16
+
+> **Рекомендация:** для подключения к web-интерфейсу zabbix можно воспользоваться пробросом портов (-D или -L) через ssh-туннель к ВМ 01-wg
+
+Отключите пакеты Zabbix, предоставляемые EPEL, если они у вас установлены. Отредактируйте файл /etc/yum.repos.d/epel.repo и добавьте следующее утверждение:
 
 ```
 [epel]
 ...
 excludepkgs=zabbix*
 ```
+**Возможно** репозиториев **epel** несколько, проверьте и исправьте все активные. 
 
 2. Добавьте репозиторий Zabbix:
 ```bash
@@ -63,10 +68,10 @@ DBUser=zabbix
 DBPassword=zabbix
 ```
 
-7. Перезапустите службы Zabbix и Apache:
+7. Перезапустите службы Zabbix и Apache, добавьте их в автозапуск:
 ```bash
 systemctl restart zabbix-server zabbix-agent httpd php-fpm
-sudo systemctl zabbix-server zabbix-agent httpd php-fpm
+systemctl enable zabbix-server zabbix-agent httpd php-fpm
 ```
 
 8. Откройте порт в firewalld (если требуется):
@@ -75,7 +80,7 @@ sudo firewall-cmd --permanent --add-service=http
 sudo firewall-cmd --reload
 ```
 
-9.  Откройте веб-интерфейс Zabbix:
+9. Используйте рабочий стол ВМ **00-ws** или проброс портов (`ssh -L 8080:10.0.20.10:80 your_gw_ip`). Откройте веб-интерфейс Zabbix:
 перейдите в браузере по адресу `http://<your-server-ip>/zabbix` и следуйте инструкциям для завершения установки.
 
 - Шаг 1
@@ -87,7 +92,7 @@ sudo firewall-cmd --reload
 - Шаг 3
 ![alt text](img/lab01/lab01s03.png)
 
-- Шаг 4
+- Шаг 4 (В поле **Имя сервера Zabbix** укажите свою фамилию на латинице)
 ![alt text](img/lab01/lab01s04.png)
 
 - Шаг 5
@@ -105,7 +110,7 @@ sudo firewall-cmd --reload
 ### Лабораторная работа
 #### **Настройка использования внешнего сервера БД.**
 
-11.  Настройте файл конфигурации Zabbix-сервера для подключения к другому серверу БД:
+11. Подключитесь к ВМ **02-zabbix_server**. Настройте файл конфигурации Zabbix-сервера для подключения к другому серверу БД:
 ```bash
 sudo vim /etc/zabbix/zabbix_server.conf
 ```
@@ -128,7 +133,7 @@ mv zabbix.conf.php zabbix.conf.php.old
 systemctl restart zabbix-server zabbix-agent httpd php-fpm
 ```
 
-14. Подготовьте сервер Postgresql на zabbix-db
+14. Подключитесь к ВМ **03-zabbix_db**. Подготовьте сервер Postgresql на zabbix-db
 
 Отключите пакеты Zabbix, предоставляемые EPEL, если они у вас установлены. Отредактируйте файл /etc/yum.repos.d/epel.repo и добавьте следующее утверждение.
 
@@ -155,7 +160,7 @@ dnf install zabbix-web-pgsql zabbix-apache-conf zabbix-sql-scripts zabbix-selinu
 
 18. На хосте сервера БД импортируйте исходную схему и данные. Вам будет предложено ввести только что созданный пароль.
 
-19. Откройте веб-интерфейс Zabbix:
+19. Используйте рабочий стол ВМ **00-ws** или проброс портов (`ssh -L 8080:10.0.20.10:80 your_gw_ip`). Откройте веб-интерфейс Zabbix:
 перейдите в браузере по адресу `http://<your-server-ip>/zabbix` и следуйте инструкциям для завершения установки.
 
 ---
@@ -164,7 +169,7 @@ dnf install zabbix-web-pgsql zabbix-apache-conf zabbix-sql-scripts zabbix-selinu
 
 #### Создайте новый узел сети
 
-22. **Добавьте новый узел**
+22. **Добавьте новый узел**. Используйте рабочий стол ВМ **00-ws** или проброс портов (`ssh -L 8080:10.0.20.10:80 your_gw_ip`).
 - Перейдите в меню `Сбор данных → Узлы сети`
 
 ![alt text](img/lab01/lab01s14.png)
