@@ -77,6 +77,8 @@ systemctl enable zabbix-server zabbix-agent httpd php-fpm
 8. Откройте порт в firewalld (если требуется):
 ```bash
 sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --permanent --add-service=zabbix-server
+sudo firewall-cmd --permanent --add-service=zabbix-agent
 sudo firewall-cmd --reload
 ```
 
@@ -161,7 +163,7 @@ dnf install zabbix-web-pgsql zabbix-apache-conf zabbix-sql-scripts zabbix-selinu
 18. На хосте сервера БД импортируйте исходную схему и данные. Вам будет предложено ввести только что созданный пароль.
 
 19. Используйте рабочий стол ВМ **00-ws** или проброс портов (`ssh -L 8080:10.0.20.10:80 your_gw_ip`). Откройте веб-интерфейс Zabbix:
-перейдите в браузере по адресу `http://<your-server-ip>/zabbix` и следуйте инструкциям для завершения установки.
+перейдите в браузере по адресу `http://<your-server-ip>/zabbix` и следуйте инструкциям для завершения установки. На экране "Настройка подключения к БД" укажите ip-адрес сервера БД `10.0.20.3`.
 
 ---
 ### Практическая работа
@@ -218,5 +220,38 @@ dnf install zabbix-web-pgsql zabbix-apache-conf zabbix-sql-scripts zabbix-selinu
 
 ![alt text](img/lab01/lab01s17.png)
 
+25. Если данные не обновляются и график пустой, то обратите внимание на содержимое файла `/var/log/zabbix/zabbix_agentd.log`
+```log
+student@zabbix-server:~$sudo tail -f /var/log/zabbix/zabbix_agentd.log
+  2721:20250527:125233.381 failed to accept an incoming connection: connection from "10.0.20.10" rejected, allowed hosts: "127.0.0.1"
+  2720:20250527:125334.381 failed to accept an incoming connection: connection from "10.0.20.10" rejected, allowed hosts: "127.0.0.1"
+  2722:20250527:125732.380 failed to accept an incoming connection: connection from "10.0.20.10" rejected, allowed hosts: "127.0.0.1"
+  2720:20250527:125747.381 failed to accept an incoming connection: connection from "10.0.20.10" rejected, allowed hosts: "127.0.0.1"
+  2725:20250527:125802.381 failed to accept an incoming connection: connection from "10.0.20.10" rejected, allowed hosts: "127.0.0.1"
+```
 
+26. Внесите изменения в файл `/etc/zabbix/zabbix_agentd.conf`. Найдите и исправьте строку начинающуюся на `Server=`
+```ini
+Server=127.0.0.1,10.0.20.10
+```
 
+27. Перезапустите **zabbix-agent**
+```bash
+sudo systemctl restart zabbix-agent.service
+```
+В журнале агента не должно быть ошибок:
+```ini
+ student@zabbix-server:~$sudo tail -f /var/log/zabbix/zabbix_agentd.log
+  5498:20250527:131241.251 agent #10 started [listener #9]
+  5497:20250527:131241.253 agent #9 started [listener #8]
+  5493:20250527:131241.253 agent #5 started [listener #4]
+  5495:20250527:131241.253 agent #7 started [listener #6]
+  5496:20250527:131241.255 agent #8 started [listener #7]
+  5499:20250527:131241.255 agent #11 started [listener #10]
+  5491:20250527:131241.256 agent #3 started [listener #2]
+  5500:20250527:131241.257 agent #12 started [active checks #1]
+  5492:20250527:131241.259 agent #4 started [listener #3]
+  5494:20250527:131241.259 agent #6 started [listener #5]
+  ```
+
+28. Вернитесь к шагу **24** и дождитесь обновления данных
