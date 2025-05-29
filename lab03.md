@@ -28,7 +28,6 @@ sudo nvim /etc/zabbix/zabbix_agent2.conf
 Server=127.0.0.1
 ServerActive=10.0.20.10
 RefreshActiveChecks=60
-RefreshActiveChecks=60
 ForceActiveChecksOnStart=1
 ```
 
