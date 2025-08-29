@@ -1,0 +1,184 @@
+---
+- name: Тестовое задание с отчетом
+  hosts: gw
+  become: yes
+  gather_facts: false
+
+  vars:
+    results: []
+    report_file: /tmp/report.txt
+
+  tasks:
+
+    - name: 1. Проверка строки proxy в /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.0.10.50 proxy"
+        state: present
+      register: result_check_line
+
+    - set_fact:
+        results: "{{ results + [ { 'name': 'Проверка строки proxy в /etc/hosts', 'changed': result_check_line.changed } ] }}"
+
+    - name: 2. Проверка строки ws в /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.0.10.220 ws"
+        state: present
+      register: r2
+
+    - set_fact:
+        results: "{{ results + [ { 'name': 'Проверка строки ws', 'changed': r2.changed } ] }}"
+
+    - name: 3. Проверка строки infra в /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.0.10.100 infra"
+        state: present
+      register: r3
+
+    - set_fact:
+        results: "{{ results + [ { 'name': 'Проверка строки infra', 'changed': r3.changed } ] }}"
+
+    - name: 4. Проверка строки server в /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.0.20.10 server"
+        state: present
+      register: r4
+
+    - set_fact:
+        results: "{{ results + [ { 'name': 'Проверка строки server', 'changed': r4.changed } ] }}"
+
+    - name: 5. Проверка строки db в /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "10.0.20.3 db"
+        state: present
+      register: r5
+
+    - set_fact:
+        results: "{{ results + [ { 'name': 'Проверка строки db', 'changed': r5.changed } ] }}"
+
+    - name: 6. Установка zabbix-release rpm
+      ansible.builtin.dnf:
+        name: https://repo.zabbix.com/zabbix/7.0/rhel/9/x86_64/zabbix-release-latest-7.0.el9.noarch.rpm
+        state: present
+      register: result_zabbix_rpm
+
+    - set_fact:
+        results: "{{ results + [ { 'name': 'Установка zabbix-release rpm', 'changed': result_zabbix_rpm.changed } ] }}"
+
+
+    - name: 7. Разрешить 80/tcp в firewalld
+      ansible.posix.firewalld:
+        port: 80/tcp
+        permanent: true
+        state: enabled
+        immediate: yes
+      register: result_firewalld
+
+    - set_fact:
+        results: "{{ results + [ { 'name': 'Разрешить 80/tcp в firewalld', 'changed': result_firewalld.changed } ] }}"
+
+    - name: 8. Установить httpd
+      ansible.builtin.dnf:
+        name: httpd
+        state: present
+      register: result_httpd_install
+
+    - set_fact:
+        results: "{{ results + [ { 'name': 'Установить httpd', 'changed': result_httpd_install.changed } ] }}"
+
+    - name: 9. Включить httpd в автозагрузку
+      ansible.builtin.service:
+        name: httpd
+        enabled: true
+      register: result_httpd_enable
+
+    - set_fact:
+        results: "{{ results + [ { 'name': 'Включить httpd в автозагрузку', 'changed': result_httpd_enable.changed } ] }}"
+
+    - name: 10.1 Проверить наличие файла httpd.otchet
+      stat:
+        path: /home/student/check/httpd.otchet
+      register: result_httpd_file
+
+    - name: 10.2 Записать результат проверки наличия файла
+      set_fact:
+        results: "{{ results + [ { 'name': 'Файл httpd.otchet существует', 'changed': (not result_httpd_file.stat.exists) } ] }}"
+
+    - name: 11.1 Получить количество строк в файле httpd.otchet
+      shell: wc -l < /home/student/check/httpd.otchet
+      register: httpd_otchet_linecount
+      changed_when: false
+      failed_when: false
+      when: result_httpd_file.stat.exists
+
+    - name: 11.2 Проверка содержимого файла httpd.otchet (если есть строки)
+      shell: grep -v httpd /home/student/check/httpd.otchet | wc -l
+      register: result_check_httpd_lines
+      changed_when: result_check_httpd_lines.stdout | int > 0
+      failed_when: false
+      when: 
+        - result_httpd_file.stat.exists
+        - httpd_otchet_linecount.stdout | int > 0
+
+    - name: 11.3 Записать результат проверки содержимого
+      set_fact:
+        results: "{{ results + [ { 'name': 'Содержимое httpd.otchet только про httpd', 'changed': (result_check_httpd_lines.stdout | int > 0) }] }}"
+      when:
+        - result_httpd_file.stat.exists
+        - httpd_otchet_linecount.stdout | int > 0
+
+    - name: Создать заглушку, если файла нет
+      copy:
+        content: "Файл был создан Ansible"
+        dest: /home/student/check.httpd.otchet
+      when: not result_httpd_file.stat.exists
+
+    - name: 15.2 Записать результат проверки наличия файла
+      set_fact:
+        results: "{{ results + [ { 'name': 'Файл httpd.otchet содержит журнал httpd', 'changed': true }] }}"
+      when: not result_httpd_file.stat.exists
+
+
+
+    # Сбор строк отчета
+    - name: Составить строки отчета
+      set_fact:
+        task_statuses: "{{ task_statuses | default([]) + [ (idx + 1) ~ ': ' ~ item.name ~ ' ' ~ ('Ошибка' if item.changed else '= Выполнено') ] }}"
+      loop: "{{ results }}"
+      loop_control:
+        index_var: idx
+
+    # Подсчет статистики
+    - name: Подсчёт Changed и OK
+      set_fact:
+        changed_count: "{{ results | selectattr('changed') | list | length }}"
+        ok_count: "{{ results | rejectattr('changed') | list | length }}"
+
+    # Формирование отчета
+    - name: Финальный отчет
+      set_fact:
+        report_lines: >-
+          {{
+            task_statuses
+            + ["", "Changed: " ~ changed_count|string, "OK: " ~ ok_count|string, ""]
+            + (
+                ["Тестовое задание не пройдено. Ваша квалификация не соответствует требуемому уровню для участия на обучающем курсе."]
+                if (changed_count | int) > 3 else []
+              )
+          }}
+
+    - name: Сохранить отчет в файл
+      copy:
+        content: "{{ report_lines | join('\n') }}"
+        dest: "{{ report_file }}"
+
+    - name: Показать путь к отчету
+      debug:
+        msg: "Отчет сохранен: {{ report_file }}"
+
+
+

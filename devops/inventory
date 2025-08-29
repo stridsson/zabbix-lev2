@@ -1,0 +1,10 @@
+[servers]
+server ansible_host=10.0.20.10
+proxy ansible_host=10.0.10.50
+db ansible_host=10.0.20.3
+
+[infra]
+ws ansible_host=10.0.10.220
+gw ansible_host=10.0.20.1
+infra ansible_host=10.0.10.100
+
