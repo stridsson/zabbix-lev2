@@ -70,7 +70,7 @@ tail -f /var/log/zabbix/zabbix_proxy.log
 Unable to connect to [10.0.20.10]:10051 [cannot connect to address: [13] Permission denied]
 ```
 Значит проблема в SELinux на **zabbix-proxy**
-Доустановите пакет `zabbix-selinux-policy` на zabbix-server.
+Доустановите пакет `zabbix-selinux-policy` на **zabbix-proxy**.
 
 12. В силу особенностей настройки маршрутизации на стенде, возможно, также придется исправить адрес прокси в web-интерфейсе zabbix-сервера. (Запросы на zabbix-server приходят с адреса шлюза 10.0.20.1)
 
