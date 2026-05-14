@@ -1,3 +1,5 @@
+
+
 Список используемых на стенде ВМ (Имена,адреса,логин/пароль)
 
 | Имя   | IP          | login   | password |
@@ -15,3 +17,4 @@
 |mikrotik         | 10.0.20.99 | admin | zabbix |
 |        | 10.0.10.99 |  |  |
 
+![alt text](../img/zabbix.drawio.svg)
