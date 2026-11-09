@@ -160,9 +160,9 @@ rpm -Uvh https://repo.zabbix.com/zabbix/7.0/alma/9/x86_64/zabbix-release-latest-
 dnf clean all
 ```
 
-16. Установите sql-скрипты, веб-интерфейс и агент:
+16. Установите sql-скрипты, политики и агент:
 ```bash
-dnf install zabbix-web-pgsql zabbix-apache-conf zabbix-sql-scripts zabbix-selinux-policy zabbix-agent
+dnf install zabbix-sql-scripts zabbix-selinux-policy zabbix-agent2
 ```
 
 17. Создайте базу данных zabbix и пользователя zabbix для Zabbix-сервера.
