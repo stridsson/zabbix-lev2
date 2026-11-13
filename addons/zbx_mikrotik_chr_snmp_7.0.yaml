@@ -1,0 +1,1006 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+  - uuid: c0150a565a4f40478e936e4aac2f0dfb
+    name: Templates/Network devices
+  templates:
+  - uuid: 89de446ff6a547d48313a017d52f5564
+    template: MikroTik CHR by SNMP custom
+    name: MikroTik CHR by SNMP (custom)
+    description: |-
+      Мониторинг MikroTik Cloud Hosted Router (RouterOS 7) по SNMP v2c/v3 для Zabbix 7.0.
+      В CHR нет датчиков температуры/напряжения и серийного номера RouterBOARD — они не опрашиваются.
+      OID: SNMPv2-MIB, HOST-RESOURCES-MIB, IF-MIB, MIKROTIK-MIB.
+    groups:
+    - name: Templates/Network devices
+    items:
+    - uuid: d4bb326f6b6d4dbeaca2687c6ad92786
+      name: System name
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.5.0
+      key: system.name
+      delay: 1h
+      value_type: CHAR
+      trends: '0'
+      inventory_link: NAME
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 12h
+      tags:
+      - tag: component
+        value: system
+      triggers:
+      - uuid: 682f60ef79fd47dab7c2a9daffb9dde4
+        expression: last(/MikroTik CHR by SNMP custom/system.name,#1)<>last(/MikroTik CHR by SNMP custom/system.name,#2) and length(last(/MikroTik CHR by SNMP custom/system.name))>0
+        name: 'MikroTik CHR: System name has changed'
+        priority: INFO
+        manual_close: 'YES'
+        tags:
+        - tag: scope
+          value: notice
+    - uuid: 217f4d75499a4fc3a680045d412479dd
+      name: System description
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.1.0
+      key: system.descr[sysDescr.0]
+      delay: 1h
+      value_type: CHAR
+      trends: '0'
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 12h
+      tags:
+      - tag: component
+        value: system
+    - uuid: 7ad24adc74414841a289e3777dc77d33
+      name: System location
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.6.0
+      key: system.location[sysLocation.0]
+      delay: 1h
+      value_type: CHAR
+      trends: '0'
+      inventory_link: LOCATION
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 12h
+      tags:
+      - tag: component
+        value: system
+    - uuid: b9014abd6d4642c9a6253c0900f6064c
+      name: System contact
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.1.4.0
+      key: system.contact[sysContact.0]
+      delay: 1h
+      value_type: CHAR
+      trends: '0'
+      inventory_link: CONTACT
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 12h
+      tags:
+      - tag: component
+        value: system
+    - uuid: 21ad2e33e576447db40788d6413ab7cf
+      name: RouterOS version
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.4.1.14988.1.1.4.4.0
+      key: system.sw.os[mtxrLicVersion.0]
+      delay: 1h
+      value_type: CHAR
+      trends: '0'
+      description: MIKROTIK-MIB::mtxrLicVersion — версия RouterOS.
+      inventory_link: OS
+      preprocessing:
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 1d
+      tags:
+      - tag: component
+        value: os
+      triggers:
+      - uuid: 344c5b8e18494d9ea4c3bbf6e0236e7a
+        expression: last(/MikroTik CHR by SNMP custom/system.sw.os[mtxrLicVersion.0],#1)<>last(/MikroTik CHR by SNMP custom/system.sw.os[mtxrLicVersion.0],#2) and length(last(/MikroTik CHR by SNMP custom/system.sw.os[mtxrLicVersion.0]))>0
+        name: 'MikroTik CHR: RouterOS version has changed'
+        priority: INFO
+        manual_close: 'YES'
+        description: Версия RouterOS изменилась (обновление/даунгрейд). Закрывается вручную.
+        tags:
+        - tag: scope
+          value: notice
+    - uuid: 87b68620451e47bfa8792e8d1117ad65
+      name: Uptime
+      type: SNMP_AGENT
+      snmp_oid: 1.3.6.1.2.1.25.1.1.0
+      key: system.hw.uptime[hrSystemUptime.0]
+      delay: 1m
+      value_type: UNSIGNED
+      units: uptime
+      description: HOST-RESOURCES-MIB::hrSystemUptime — время работы RouterOS.
+      preprocessing:
+      - type: CHECK_NOT_SUPPORTED
+        parameters:
+        - '-1'
+        error_handler: CUSTOM_VALUE
+        error_handler_params: '0'
+      - type: MULTIPLIER
+        parameters:
+        - '0.01'
+      tags:
+      - tag: component
+        value: system
+      triggers:
+      - uuid: 7b1cd32824fa4090ad8ee4bc1891decd
+        expression: last(/MikroTik CHR by SNMP custom/system.hw.uptime[hrSystemUptime.0])<10m
+        name: 'MikroTik CHR: Host has been restarted'
+        priority: WARNING
+        opdata: 'Uptime: {ITEM.LASTVALUE1}'
+        manual_close: 'YES'
+        description: 'Uptime меньше 10 минут: ВМ перезагружена (reboot, сбой гипервизора, обновление RouterOS).'
+        tags:
+        - tag: scope
+          value: notice
+    - uuid: c55df56577fb4cd29d80945bf178cffd
+      name: SNMP walk CPUs
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.2.1.25.3.3.1.2]
+      key: system.cpu.walk
+      delay: 1m
+      value_type: TEXT
+      history: '0'
+      trends: '0'
+      description: 'Master-элемент: HOST-RESOURCES-MIB::hrProcessorLoad по всем vCPU.'
+      tags:
+      - tag: component
+        value: raw
+    - uuid: b7db12481dd04129962e1cc8bd6c09f6
+      name: SNMP walk storage
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.2.1.25.2.3.1.2,1.3.6.1.2.1.25.2.3.1.3,1.3.6.1.2.1.25.2.3.1.4,1.3.6.1.2.1.25.2.3.1.5,1.3.6.1.2.1.25.2.3.1.6]
+      key: system.storage.walk
+      delay: 1m
+      value_type: TEXT
+      history: '0'
+      trends: '0'
+      description: 'Master-элемент: HOST-RESOURCES-MIB::hrStorageTable (RAM и системный диск).'
+      tags:
+      - tag: component
+        value: raw
+    - uuid: 24db75c80d6442f7afa9c659e2eb8867
+      name: SNMP walk network interfaces
+      type: SNMP_AGENT
+      snmp_oid: walk[1.3.6.1.2.1.2.2.1.2,1.3.6.1.2.1.2.2.1.3,1.3.6.1.2.1.2.2.1.7,1.3.6.1.2.1.2.2.1.8,1.3.6.1.2.1.2.2.1.13,1.3.6.1.2.1.2.2.1.14,1.3.6.1.2.1.2.2.1.19,1.3.6.1.2.1.2.2.1.20,1.3.6.1.2.1.31.1.1.1.1,1.3.6.1.2.1.31.1.1.1.6,1.3.6.1.2.1.31.1.1.1.10,1.3.6.1.2.1.31.1.1.1.15,1.3.6.1.2.1.31.1.1.1.18]
+      key: net.if.walk
+      delay: 1m
+      value_type: TEXT
+      history: '0'
+      trends: '0'
+      description: 'Master-элемент: IF-MIB ifTable + ifXTable (64-битные счётчики, нужен SNMPv2c/v3).'
+      tags:
+      - tag: component
+        value: raw
+    - uuid: cb44936a155d4a2fb3a99966db06adb1
+      name: CPU utilization
+      type: DEPENDENT
+      key: system.cpu.util
+      delay: '0'
+      value_type: FLOAT
+      units: '%'
+      description: Средняя загрузка всех vCPU (hrProcessorLoad).
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#CPU.UTIL}'
+        - 1.3.6.1.2.1.25.3.3.1.2
+        - '0'
+      - type: JAVASCRIPT
+        parameters:
+        - |-
+          var d = JSON.parse(value), s = 0, n = 0;
+          for (var i = 0; i < d.length; i++) {
+              var v = parseFloat(d[i]["{#CPU.UTIL}"]);
+              if (!isNaN(v)) { s += v; n++; }
+          }
+          if (n === 0) { throw "No CPU data"; }
+          return (s / n).toFixed(2);
+      master_item:
+        key: system.cpu.walk
+      tags:
+      - tag: component
+        value: cpu
+      triggers:
+      - uuid: 59913822bb244383b1d30367b50d3b83
+        expression: min(/MikroTik CHR by SNMP custom/system.cpu.util,5m)>{$CPU.UTIL.CRIT}
+        name: 'MikroTik CHR: High CPU utilization'
+        priority: WARNING
+        opdata: 'Current utilization: {ITEM.LASTVALUE1}'
+        description: Средняя загрузка vCPU выше {$CPU.UTIL.CRIT}% в течение 5 минут.
+        tags:
+        - tag: scope
+          value: performance
+    - uuid: a35965f9551742609c84288261e9e423
+      name: SNMP agent availability
+      type: INTERNAL
+      key: zabbix[host,snmp,available]
+      history: 7d
+      valuemap:
+        name: zabbix.host.available
+      tags:
+      - tag: component
+        value: health
+      - tag: component
+        value: network
+      triggers:
+      - uuid: 64f31645c4e54ea7812d5c1bfcfd512c
+        expression: max(/MikroTik CHR by SNMP custom/zabbix[host,snmp,available],{$SNMP.TIMEOUT})=0
+        name: 'MikroTik CHR: No SNMP data collection'
+        priority: WARNING
+        description: SNMP недоступен. Проверьте /ip/service, /snmp, community/ACL и фаервол (UDP/161).
+        dependencies:
+        - name: 'MikroTik CHR: Unavailable by ICMP ping'
+          expression: max(/MikroTik CHR by SNMP custom/icmpping,#3)=0
+        tags:
+        - tag: scope
+          value: availability
+    - uuid: a89f1a36a74d42c4b94c4d602a275e37
+      name: ICMP ping
+      type: SIMPLE
+      key: icmpping
+      valuemap:
+        name: Service state
+      tags:
+      - tag: component
+        value: health
+      - tag: component
+        value: network
+      triggers:
+      - uuid: 252b18c63164485689b695a0f8fd12a7
+        expression: max(/MikroTik CHR by SNMP custom/icmpping,#3)=0
+        name: 'MikroTik CHR: Unavailable by ICMP ping'
+        priority: HIGH
+        description: Три последние проверки ICMP завершились таймаутом.
+        tags:
+        - tag: scope
+          value: availability
+    - uuid: 587477f447a041b79936788bb6518f9d
+      name: ICMP loss
+      type: SIMPLE
+      key: icmppingloss
+      value_type: FLOAT
+      units: '%'
+      tags:
+      - tag: component
+        value: health
+      - tag: component
+        value: network
+      triggers:
+      - uuid: 11ffd8b6fee24f66ac0ac7696dc56670
+        expression: min(/MikroTik CHR by SNMP custom/icmppingloss,5m)>{$ICMP_LOSS_WARN} and min(/MikroTik CHR by SNMP custom/icmppingloss,5m)<100
+        name: 'MikroTik CHR: High ICMP ping loss'
+        priority: WARNING
+        opdata: 'Loss: {ITEM.LASTVALUE1}'
+        dependencies:
+        - name: 'MikroTik CHR: Unavailable by ICMP ping'
+          expression: max(/MikroTik CHR by SNMP custom/icmpping,#3)=0
+        tags:
+        - tag: scope
+          value: availability
+        - tag: scope
+          value: performance
+    - uuid: c6dc850f808441e787d1fa03cf867abe
+      name: ICMP response time
+      type: SIMPLE
+      key: icmppingsec
+      value_type: FLOAT
+      units: s
+      tags:
+      - tag: component
+        value: health
+      - tag: component
+        value: network
+      triggers:
+      - uuid: 7ce70130ce97494a9061d9547e98fcf9
+        expression: avg(/MikroTik CHR by SNMP custom/icmppingsec,5m)>{$ICMP_RESPONSE_TIME_WARN}
+        name: 'MikroTik CHR: High ICMP ping response time'
+        priority: WARNING
+        opdata: 'Value: {ITEM.LASTVALUE1}'
+        dependencies:
+        - name: 'MikroTik CHR: Unavailable by ICMP ping'
+          expression: max(/MikroTik CHR by SNMP custom/icmpping,#3)=0
+        tags:
+        - tag: scope
+          value: availability
+        - tag: scope
+          value: performance
+    discovery_rules:
+    - uuid: 63e8c1b0ccb54d5685c4abb6795d62fb
+      name: CPU discovery
+      type: DEPENDENT
+      key: system.cpu.discovery
+      delay: '0'
+      description: Обнаружение vCPU виртуальной машины.
+      item_prototypes:
+      - uuid: 06d1248630fd48a69d5a4555e0950cc5
+        name: 'CPU #{#SNMPINDEX}: Utilization'
+        type: DEPENDENT
+        key: system.cpu.util[hrProcessorLoad.{#SNMPINDEX}]
+        delay: '0'
+        value_type: FLOAT
+        units: '%'
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.25.3.3.1.2.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: system.cpu.walk
+        tags:
+        - tag: component
+          value: cpu
+        - tag: cpu
+          value: '{#SNMPINDEX}'
+      master_item:
+        key: system.cpu.walk
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#CPU.UTIL}'
+        - 1.3.6.1.2.1.25.3.3.1.2
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 6h
+    - uuid: ade4d30e052e4b76b4a9c011b2a00cba
+      name: Memory discovery
+      type: DEPENDENT
+      key: vm.memory.discovery
+      delay: '0'
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#STORAGE.TYPE}'
+          value: '{$STORAGE.RAM.TYPE.MATCHES}'
+          operator: MATCHES_REGEX
+          formulaid: A
+      description: Оперативная память RouterOS (hrStorageRam, обычно индекс 65536 «main memory»).
+      item_prototypes:
+      - uuid: dd948c35cf87430f85401bf48c1030d8
+        name: 'Memory "{#STORAGE.NAME}": Total'
+        type: DEPENDENT
+        key: vm.memory.total[hrStorageSize.{#SNMPINDEX}]
+        delay: '0'
+        value_type: UNSIGNED
+        units: B
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.25.2.3.1.5.{#SNMPINDEX}
+          - '0'
+        - type: MULTIPLIER
+          parameters:
+          - '{#ALLOC_UNITS}'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1d
+        master_item:
+          key: system.storage.walk
+        tags:
+        - tag: component
+          value: memory
+      - uuid: 929de939ce3a496b84bcbdf2bbd30ee0
+        name: 'Memory "{#STORAGE.NAME}": Used'
+        type: DEPENDENT
+        key: vm.memory.used[hrStorageUsed.{#SNMPINDEX}]
+        delay: '0'
+        value_type: UNSIGNED
+        units: B
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.25.2.3.1.6.{#SNMPINDEX}
+          - '0'
+        - type: MULTIPLIER
+          parameters:
+          - '{#ALLOC_UNITS}'
+        master_item:
+          key: system.storage.walk
+        tags:
+        - tag: component
+          value: memory
+      - uuid: a40d8219b0e34b40ab5b0665d210b081
+        name: 'Memory "{#STORAGE.NAME}": Utilization'
+        type: CALCULATED
+        key: vm.memory.util[{#SNMPINDEX}]
+        value_type: FLOAT
+        units: '%'
+        params: last(//vm.memory.used[hrStorageUsed.{#SNMPINDEX}])/last(//vm.memory.total[hrStorageSize.{#SNMPINDEX}])*100
+        tags:
+        - tag: component
+          value: memory
+      trigger_prototypes:
+      - uuid: c5c0fa30e3b84734835ff2b17d482de8
+        expression: min(/MikroTik CHR by SNMP custom/vm.memory.util[{#SNMPINDEX}],5m)>{$MEMORY.UTIL.MAX}
+        name: 'MikroTik CHR: High memory utilization'
+        priority: AVERAGE
+        opdata: 'Used: {ITEM.LASTVALUE1}'
+        description: Использование RAM выше {$MEMORY.UTIL.MAX}% в течение 5 минут.
+        tags:
+        - tag: scope
+          value: capacity
+        - tag: scope
+          value: performance
+      graph_prototypes:
+      - uuid: 9e07522a6a344eb79a9b0d0bf886d76f
+        name: Memory "{#STORAGE.NAME}" usage
+        ymin_type_1: FIXED
+        graph_items:
+        - drawtype: BOLD_LINE
+          color: 1A7C11
+          item:
+            host: MikroTik CHR by SNMP custom
+            key: vm.memory.total[hrStorageSize.{#SNMPINDEX}]
+        - sortorder: '1'
+          drawtype: GRADIENT_LINE
+          color: 2774A4
+          item:
+            host: MikroTik CHR by SNMP custom
+            key: vm.memory.used[hrStorageUsed.{#SNMPINDEX}]
+      master_item:
+        key: system.storage.walk
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#STORAGE.TYPE}'
+        - 1.3.6.1.2.1.25.2.3.1.2
+        - '0'
+        - '{#STORAGE.NAME}'
+        - 1.3.6.1.2.1.25.2.3.1.3
+        - '0'
+        - '{#ALLOC_UNITS}'
+        - 1.3.6.1.2.1.25.2.3.1.4
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 6h
+    - uuid: da313c838ba44c94a9a32195bb425dfe
+      name: Disk discovery
+      type: DEPENDENT
+      key: vfs.fs.discovery
+      delay: '0'
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#STORAGE.TYPE}'
+          value: '{$STORAGE.DISK.TYPE.MATCHES}'
+          operator: MATCHES_REGEX
+          formulaid: A
+      description: Системный диск RouterOS (hrStorageFixedDisk, обычно индекс 131072 «system disk»).
+      item_prototypes:
+      - uuid: 327e3f11d9ca4ccb9816eccffd839b3e
+        name: 'Disk "{#STORAGE.NAME}": Total space'
+        type: DEPENDENT
+        key: vfs.fs.total[hrStorageSize.{#SNMPINDEX}]
+        delay: '0'
+        value_type: UNSIGNED
+        units: B
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.25.2.3.1.5.{#SNMPINDEX}
+          - '0'
+        - type: MULTIPLIER
+          parameters:
+          - '{#ALLOC_UNITS}'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1d
+        master_item:
+          key: system.storage.walk
+        tags:
+        - tag: component
+          value: storage
+        - tag: filesystem
+          value: '{#STORAGE.NAME}'
+      - uuid: 35852cd9ec304cd4904d2d83dc19fecd
+        name: 'Disk "{#STORAGE.NAME}": Used space'
+        type: DEPENDENT
+        key: vfs.fs.used[hrStorageUsed.{#SNMPINDEX}]
+        delay: '0'
+        value_type: UNSIGNED
+        units: B
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.25.2.3.1.6.{#SNMPINDEX}
+          - '0'
+        - type: MULTIPLIER
+          parameters:
+          - '{#ALLOC_UNITS}'
+        master_item:
+          key: system.storage.walk
+        tags:
+        - tag: component
+          value: storage
+        - tag: filesystem
+          value: '{#STORAGE.NAME}'
+      - uuid: 0a5add3682de4a39a1a38a76cd75dc0c
+        name: 'Disk "{#STORAGE.NAME}": Space utilization'
+        type: CALCULATED
+        key: vfs.fs.pused[{#SNMPINDEX}]
+        value_type: FLOAT
+        units: '%'
+        params: last(//vfs.fs.used[hrStorageUsed.{#SNMPINDEX}])/last(//vfs.fs.total[hrStorageSize.{#SNMPINDEX}])*100
+        tags:
+        - tag: component
+          value: storage
+        - tag: filesystem
+          value: '{#STORAGE.NAME}'
+      trigger_prototypes:
+      - uuid: 676b2d55974349b789f240441c358a98
+        expression: last(/MikroTik CHR by SNMP custom/vfs.fs.pused[{#SNMPINDEX}])>{$VFS.FS.PUSED.MAX.CRIT:"{#STORAGE.NAME}"}
+        name: 'MikroTik CHR: Disk "{#STORAGE.NAME}": Space is critically low'
+        priority: AVERAGE
+        opdata: 'Used: {ITEM.LASTVALUE1}'
+        description: Заполнено более {$VFS.FS.PUSED.MAX.CRIT:"{#STORAGE.NAME}"}%. Проверьте /file, логи на диске, бэкапы и пакеты.
+        tags:
+        - tag: scope
+          value: capacity
+      - uuid: 2d46128a66924047ad7d693463c71d8e
+        expression: last(/MikroTik CHR by SNMP custom/vfs.fs.pused[{#SNMPINDEX}])>{$VFS.FS.PUSED.MAX.WARN:"{#STORAGE.NAME}"}
+        name: 'MikroTik CHR: Disk "{#STORAGE.NAME}": Space is low'
+        priority: WARNING
+        opdata: 'Used: {ITEM.LASTVALUE1}'
+        description: Заполнено более {$VFS.FS.PUSED.MAX.WARN:"{#STORAGE.NAME}"}%.
+        dependencies:
+        - name: 'MikroTik CHR: Disk "{#STORAGE.NAME}": Space is critically low'
+          expression: last(/MikroTik CHR by SNMP custom/vfs.fs.pused[{#SNMPINDEX}])>{$VFS.FS.PUSED.MAX.CRIT:"{#STORAGE.NAME}"}
+        tags:
+        - tag: scope
+          value: capacity
+      master_item:
+        key: system.storage.walk
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#STORAGE.TYPE}'
+        - 1.3.6.1.2.1.25.2.3.1.2
+        - '0'
+        - '{#STORAGE.NAME}'
+        - 1.3.6.1.2.1.25.2.3.1.3
+        - '0'
+        - '{#ALLOC_UNITS}'
+        - 1.3.6.1.2.1.25.2.3.1.4
+        - '0'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 6h
+    - uuid: 1b832267033e44c98c1f092ec7fa9c2f
+      name: Network interface discovery
+      type: DEPENDENT
+      key: net.if.discovery
+      delay: '0'
+      filter:
+        evaltype: AND
+        conditions:
+        - macro: '{#IFADMINSTATUS}'
+          value: '{$NET.IF.IFADMINSTATUS.MATCHES}'
+          formulaid: A
+        - macro: '{#IFADMINSTATUS}'
+          value: '{$NET.IF.IFADMINSTATUS.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: B
+        - macro: '{#IFNAME}'
+          value: '{$NET.IF.IFNAME.MATCHES}'
+          formulaid: C
+        - macro: '{#IFNAME}'
+          value: '{$NET.IF.IFNAME.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: D
+        - macro: '{#IFTYPE}'
+          value: '{$NET.IF.IFTYPE.MATCHES}'
+          formulaid: E
+        - macro: '{#IFTYPE}'
+          value: '{$NET.IF.IFTYPE.NOT_MATCHES}'
+          operator: NOT_MATCHES_REGEX
+          formulaid: F
+      description: Обнаружение интерфейсов RouterOS через IF-MIB (ether, bridge, vlan, туннели и т.д.).
+      item_prototypes:
+      - uuid: 352ee74445134de78f718ef97a0ba8e6
+        name: 'Interface {#IFNAME}({#IFALIAS}): Operational status'
+        type: DEPENDENT
+        key: net.if.status[{#SNMPINDEX}]
+        delay: '0'
+        value_type: UNSIGNED
+        valuemap:
+          name: IF-MIB::ifOperStatus
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.8.{#SNMPINDEX}
+          - '0'
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: ac1cd7a5c61b4bb5a947006cdea6ecdf
+        name: 'Interface {#IFNAME}({#IFALIAS}): Speed'
+        type: DEPENDENT
+        key: net.if.speed[{#SNMPINDEX}]
+        delay: '0'
+        value_type: UNSIGNED
+        units: bps
+        description: ifHighSpeed. На virtio-интерфейсах CHR может быть 0 — тогда триггер утилизации не сработает.
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.31.1.1.1.15.{#SNMPINDEX}
+          - '0'
+        - type: MULTIPLIER
+          parameters:
+          - '1000000'
+        - type: DISCARD_UNCHANGED_HEARTBEAT
+          parameters:
+          - 1h
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 3f71e198d43f4338851aa753076a5087
+        name: 'Interface {#IFNAME}({#IFALIAS}): Bits received'
+        type: DEPENDENT
+        key: net.if.in[{#SNMPINDEX}]
+        delay: '0'
+        value_type: FLOAT
+        units: bps
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.31.1.1.1.6.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 000aee7409c54b169eecac870c868bb6
+        name: 'Interface {#IFNAME}({#IFALIAS}): Bits sent'
+        type: DEPENDENT
+        key: net.if.out[{#SNMPINDEX}]
+        delay: '0'
+        value_type: FLOAT
+        units: bps
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.31.1.1.1.10.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+        - type: MULTIPLIER
+          parameters:
+          - '8'
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 099f39e3c0a248579a7961ebe94a5dea
+        name: 'Interface {#IFNAME}({#IFALIAS}): Inbound packets with errors'
+        type: DEPENDENT
+        key: net.if.in.errors[{#SNMPINDEX}]
+        delay: '0'
+        value_type: FLOAT
+        units: pps
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.14.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: aa73a3b5bd324549890dd8c25f1b6ba8
+        name: 'Interface {#IFNAME}({#IFALIAS}): Outbound packets with errors'
+        type: DEPENDENT
+        key: net.if.out.errors[{#SNMPINDEX}]
+        delay: '0'
+        value_type: FLOAT
+        units: pps
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.20.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 5800bbfa6bfb421eb03a191be5c2bbce
+        name: 'Interface {#IFNAME}({#IFALIAS}): Inbound packets discarded'
+        type: DEPENDENT
+        key: net.if.in.discards[{#SNMPINDEX}]
+        delay: '0'
+        value_type: FLOAT
+        units: pps
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.13.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      - uuid: 91bd781087e04b20a9acd688d7d9b0ed
+        name: 'Interface {#IFNAME}({#IFALIAS}): Outbound packets discarded'
+        type: DEPENDENT
+        key: net.if.out.discards[{#SNMPINDEX}]
+        delay: '0'
+        value_type: FLOAT
+        units: pps
+        preprocessing:
+        - type: SNMP_WALK_VALUE
+          parameters:
+          - 1.3.6.1.2.1.2.2.1.19.{#SNMPINDEX}
+          - '0'
+        - type: CHANGE_PER_SECOND
+        master_item:
+          key: net.if.walk
+        tags:
+        - tag: component
+          value: network
+        - tag: interface
+          value: '{#IFNAME}'
+      trigger_prototypes:
+      - uuid: 0afa09fffc5d4c36b93c0d4af2a78883
+        expression: '{$IFCONTROL:"{#IFNAME}"}=1 and last(/MikroTik CHR by SNMP custom/net.if.status[{#SNMPINDEX}])=2 and (last(/MikroTik CHR by SNMP custom/net.if.status[{#SNMPINDEX}],#1)<>last(/MikroTik CHR by SNMP custom/net.if.status[{#SNMPINDEX}],#2))'
+        name: 'MikroTik CHR: Interface {#IFNAME}({#IFALIAS}): Link down'
+        priority: AVERAGE
+        opdata: 'Current state: {ITEM.LASTVALUE1}'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: last(/MikroTik CHR by SNMP custom/net.if.status[{#SNMPINDEX}])<>2 or {$IFCONTROL:"{#IFNAME}"}=0
+        manual_close: 'YES'
+        description: 'Интерфейс перешёл в состояние down. Срабатывает только при смене статуса. Отключить для интерфейса: {$IFCONTROL:"<имя>"}=0.'
+        tags:
+        - tag: scope
+          value: availability
+      - uuid: 6a79c98bd15b4937a2575cafd0617963
+        expression: min(/MikroTik CHR by SNMP custom/net.if.in.errors[{#SNMPINDEX}],5m)>{$IF.ERRORS.WARN:"{#IFNAME}"} or min(/MikroTik CHR by SNMP custom/net.if.out.errors[{#SNMPINDEX}],5m)>{$IF.ERRORS.WARN:"{#IFNAME}"}
+        name: 'MikroTik CHR: Interface {#IFNAME}({#IFALIAS}): High error rate'
+        priority: WARNING
+        opdata: 'errors in: {ITEM.LASTVALUE1}, out: {ITEM.LASTVALUE2}'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: max(/MikroTik CHR by SNMP custom/net.if.in.errors[{#SNMPINDEX}],5m)<{$IF.ERRORS.WARN:"{#IFNAME}"}*0.8 and max(/MikroTik CHR by SNMP custom/net.if.out.errors[{#SNMPINDEX}],5m)<{$IF.ERRORS.WARN:"{#IFNAME}"}*0.8
+        manual_close: 'YES'
+        description: Ошибки на интерфейсе выше {$IF.ERRORS.WARN:"{#IFNAME}"} пакетов/с в течение 5 минут.
+        dependencies:
+        - name: 'MikroTik CHR: Interface {#IFNAME}({#IFALIAS}): Link down'
+          expression: '{$IFCONTROL:"{#IFNAME}"}=1 and last(/MikroTik CHR by SNMP custom/net.if.status[{#SNMPINDEX}])=2 and (last(/MikroTik CHR by SNMP custom/net.if.status[{#SNMPINDEX}],#1)<>last(/MikroTik CHR by SNMP custom/net.if.status[{#SNMPINDEX}],#2))'
+          recovery_expression: last(/MikroTik CHR by SNMP custom/net.if.status[{#SNMPINDEX}])<>2 or {$IFCONTROL:"{#IFNAME}"}=0
+        tags:
+        - tag: scope
+          value: availability
+        - tag: scope
+          value: performance
+      - uuid: 06d015491f4348e3aafc0747ddce0c0e
+        expression: (avg(/MikroTik CHR by SNMP custom/net.if.in[{#SNMPINDEX}],15m)>({$IF.UTIL.MAX:"{#IFNAME}"}/100)*last(/MikroTik CHR by SNMP custom/net.if.speed[{#SNMPINDEX}]) or avg(/MikroTik CHR by SNMP custom/net.if.out[{#SNMPINDEX}],15m)>({$IF.UTIL.MAX:"{#IFNAME}"}/100)*last(/MikroTik CHR by SNMP custom/net.if.speed[{#SNMPINDEX}])) and last(/MikroTik CHR by SNMP custom/net.if.speed[{#SNMPINDEX}])>0
+        name: 'MikroTik CHR: Interface {#IFNAME}({#IFALIAS}): High bandwidth usage'
+        priority: WARNING
+        opdata: 'In: {ITEM.LASTVALUE1}, out: {ITEM.LASTVALUE3}, speed: {ITEM.LASTVALUE2}'
+        recovery_mode: RECOVERY_EXPRESSION
+        recovery_expression: avg(/MikroTik CHR by SNMP custom/net.if.in[{#SNMPINDEX}],15m)<(({$IF.UTIL.MAX:"{#IFNAME}"}-3)/100)*last(/MikroTik CHR by SNMP custom/net.if.speed[{#SNMPINDEX}]) and avg(/MikroTik CHR by SNMP custom/net.if.out[{#SNMPINDEX}],15m)<(({$IF.UTIL.MAX:"{#IFNAME}"}-3)/100)*last(/MikroTik CHR by SNMP custom/net.if.speed[{#SNMPINDEX}])
+        manual_close: 'YES'
+        description: Средняя загрузка за 15 минут выше {$IF.UTIL.MAX:"{#IFNAME}"}% от скорости интерфейса.
+        dependencies:
+        - name: 'MikroTik CHR: Interface {#IFNAME}({#IFALIAS}): Link down'
+          expression: '{$IFCONTROL:"{#IFNAME}"}=1 and last(/MikroTik CHR by SNMP custom/net.if.status[{#SNMPINDEX}])=2 and (last(/MikroTik CHR by SNMP custom/net.if.status[{#SNMPINDEX}],#1)<>last(/MikroTik CHR by SNMP custom/net.if.status[{#SNMPINDEX}],#2))'
+          recovery_expression: last(/MikroTik CHR by SNMP custom/net.if.status[{#SNMPINDEX}])<>2 or {$IFCONTROL:"{#IFNAME}"}=0
+        tags:
+        - tag: scope
+          value: performance
+      graph_prototypes:
+      - uuid: db072aad973d4a1888c5d98fe021da45
+        name: 'Interface {#IFNAME}({#IFALIAS}): Network traffic'
+        graph_items:
+        - drawtype: GRADIENT_LINE
+          color: 1A7C11
+          item:
+            host: MikroTik CHR by SNMP custom
+            key: net.if.in[{#SNMPINDEX}]
+        - sortorder: '1'
+          drawtype: BOLD_LINE
+          color: 2774A4
+          item:
+            host: MikroTik CHR by SNMP custom
+            key: net.if.out[{#SNMPINDEX}]
+      - uuid: 6db2bf85872345cf9702792fef1dd597
+        name: 'Interface {#IFNAME}({#IFALIAS}): Errors and discards'
+        graph_items:
+        - color: F63100
+          item:
+            host: MikroTik CHR by SNMP custom
+            key: net.if.in.errors[{#SNMPINDEX}]
+        - sortorder: '1'
+          color: A54F10
+          item:
+            host: MikroTik CHR by SNMP custom
+            key: net.if.out.errors[{#SNMPINDEX}]
+        - sortorder: '2'
+          color: FC6EA3
+          item:
+            host: MikroTik CHR by SNMP custom
+            key: net.if.in.discards[{#SNMPINDEX}]
+        - sortorder: '3'
+          color: 6C59DC
+          item:
+            host: MikroTik CHR by SNMP custom
+            key: net.if.out.discards[{#SNMPINDEX}]
+      master_item:
+        key: net.if.walk
+      preprocessing:
+      - type: SNMP_WALK_TO_JSON
+        parameters:
+        - '{#IFDESCR}'
+        - 1.3.6.1.2.1.2.2.1.2
+        - '1'
+        - '{#IFTYPE}'
+        - 1.3.6.1.2.1.2.2.1.3
+        - '0'
+        - '{#IFADMINSTATUS}'
+        - 1.3.6.1.2.1.2.2.1.7
+        - '0'
+        - '{#IFOPERSTATUS}'
+        - 1.3.6.1.2.1.2.2.1.8
+        - '0'
+        - '{#IFNAME}'
+        - 1.3.6.1.2.1.31.1.1.1.1
+        - '1'
+        - '{#IFALIAS}'
+        - 1.3.6.1.2.1.31.1.1.1.18
+        - '1'
+      - type: DISCARD_UNCHANGED_HEARTBEAT
+        parameters:
+        - 6h
+    tags:
+    - tag: class
+      value: network
+    - tag: target
+      value: mikrotik
+    - tag: target
+      value: chr
+    macros:
+    - macro: '{$CPU.UTIL.CRIT}'
+      value: '90'
+      description: Порог загрузки CPU, %.
+    - macro: '{$MEMORY.UTIL.MAX}'
+      value: '90'
+      description: Порог использования RAM, %.
+    - macro: '{$VFS.FS.PUSED.MAX.WARN}'
+      value: '80'
+      description: Предупреждение о заполнении диска, %. Поддерживает контекст по имени.
+    - macro: '{$VFS.FS.PUSED.MAX.CRIT}'
+      value: '90'
+      description: Критичное заполнение диска, %. Поддерживает контекст по имени.
+    - macro: '{$STORAGE.RAM.TYPE.MATCHES}'
+      value: (\.1\.3\.6\.1\.2\.1\.25\.2\.1\.2|hrStorageRam)$
+      description: Тип хранилища для обнаружения RAM.
+    - macro: '{$STORAGE.DISK.TYPE.MATCHES}'
+      value: (\.1\.3\.6\.1\.2\.1\.25\.2\.1\.4|hrStorageFixedDisk)$
+      description: Тип хранилища для обнаружения дисков.
+    - macro: '{$SNMP.TIMEOUT}'
+      value: 5m
+      description: Интервал для триггера недоступности SNMP.
+    - macro: '{$ICMP_LOSS_WARN}'
+      value: '20'
+      description: Порог потерь ICMP, %.
+    - macro: '{$ICMP_RESPONSE_TIME_WARN}'
+      value: '0.15'
+      description: Порог времени ответа ICMP, с.
+    - macro: '{$IFCONTROL}'
+      value: '1'
+      description: '1 — генерировать Link down, 0 — нет. Используйте контекст: {$IFCONTROL:"ether2"}=0.'
+    - macro: '{$IF.ERRORS.WARN}'
+      value: '2'
+      description: Порог ошибок на интерфейсе, пакетов/с.
+    - macro: '{$IF.UTIL.MAX}'
+      value: '90'
+      description: Порог загрузки интерфейса, % от ifHighSpeed.
+    - macro: '{$NET.IF.IFADMINSTATUS.MATCHES}'
+      value: ^.*
+    - macro: '{$NET.IF.IFADMINSTATUS.NOT_MATCHES}'
+      value: ^(2|down.*)$
+      description: Игнорировать административно выключенные (disabled) интерфейсы.
+    - macro: '{$NET.IF.IFNAME.MATCHES}'
+      value: ^.*$
+    - macro: '{$NET.IF.IFNAME.NOT_MATCHES}'
+      value: ^(lo|loopback.*|Null.*)$
+      description: Исключаемые имена интерфейсов.
+    - macro: '{$NET.IF.IFTYPE.MATCHES}'
+      value: .*
+    - macro: '{$NET.IF.IFTYPE.NOT_MATCHES}'
+      value: ^(24)$
+      description: Исключить softwareLoopback (24).
+    valuemaps:
+    - uuid: f8365a24fb3c4d4a9374197fbc6a2868
+      name: IF-MIB::ifOperStatus
+      mappings:
+      - value: '1'
+        newvalue: up
+      - value: '2'
+        newvalue: down
+      - value: '3'
+        newvalue: testing
+      - value: '4'
+        newvalue: unknown
+      - value: '5'
+        newvalue: dormant
+      - value: '6'
+        newvalue: notPresent
+      - value: '7'
+        newvalue: lowerLayerDown
+    - uuid: 35e174e63f52486288a8f5af29f14a49
+      name: Service state
+      mappings:
+      - value: '0'
+        newvalue: Down
+      - value: '1'
+        newvalue: Up
+    - uuid: 7b6566e1f3d94f96a0965743b54a2ed4
+      name: zabbix.host.available
+      mappings:
+      - value: '0'
+        newvalue: not available
+      - value: '1'
+        newvalue: available
+      - value: '2'
+        newvalue: unknown
+  graphs:
+  - uuid: 6a0d1f58765e4a2f827edc0c3dfa64d2
+    name: 'MikroTik CHR: CPU utilization'
+    ymin_type_1: FIXED
+    ymax_type_1: FIXED
+    graph_items:
+    - drawtype: GRADIENT_LINE
+      color: 1A7C11
+      item:
+        host: MikroTik CHR by SNMP custom
+        key: system.cpu.util
+  - uuid: acb83d6de9d34600bb4858add27449d8
+    name: 'MikroTik CHR: ICMP response time'
+    graph_items:
+    - drawtype: GRADIENT_LINE
+      color: 1A7C11
+      item:
+        host: MikroTik CHR by SNMP custom
+        key: icmppingsec
